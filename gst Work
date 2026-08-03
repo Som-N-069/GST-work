@@ -1,0 +1,1122 @@
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Textarea } from "@/components/ui/textarea"
+import { CheckCircle2, XCircle, AlertTriangle, FileText, Building2, IndianRupee, HelpCircle, ArrowRight, ArrowLeft, Send, Download, Info, Shield } from "lucide-react"
+
+// --- Composition Scheme Eligibility Checker ---
+function CompositionEligibility() {
+  const [formData, setFormData] = useState({
+    annualTurnover: "",
+    businessType: "",
+    state: "",
+    isInterStateSupply: false,
+    isEcomOperator: false,
+    isManufacturer: false,
+    isServiceProvider: false,
+    isIceCreamManufacturer: false,
+    isTobaccoManufacturer: false,
+    isPanMasalaManufacturer: false,
+    hasMultipleStates: false,
+    isNonResident: false,
+    isCasualTaxable: false,
+    isInputServiceDistributor: false,
+  })
+  const [result, setResult] = useState<null | { eligible: boolean; reasons: string[]; taxRate: string; suggestions: string[] }>(null)
+
+  const checkEligibility = () => {
+    const reasons: string[] = []
+    const suggestions: string[] = []
+    let eligible = true
+    const turnover = parseFloat(formData.annualTurnover)
+
+    // Turnover check
+    if (isNaN(turnover)) {
+      reasons.push("Please enter a valid annual turnover amount.")
+      eligible = false
+    } else {
+      const isSpecialState = ["Arunachal Pradesh", "Assam", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Sikkim", "Tripura", "Himachal Pradesh", "Uttarakhand"].includes(formData.state)
+      const limit = isSpecialState ? 75 : 150
+
+      if (turnover > limit) {
+        reasons.push(`Annual turnover exceeds ₹${limit} Lakhs (limit for ${isSpecialState ? "Special Category" : "General"} States).`)
+        eligible = false
+      }
+    }
+
+    // Business type check
+    if (!formData.businessType) {
+      reasons.push("Please select your business type.")
+      eligible = false
+    }
+
+    // State check
+    if (!formData.state) {
+      reasons.push("Please select your state.")
+      eligible = false
+    }
+
+    // Restriction checks
+    if (formData.isInterStateSupply) {
+      reasons.push("Businesses making inter-state outward supplies cannot opt for Composition Scheme.")
+      eligible = false
+    }
+    if (formData.isEcomOperator) {
+      reasons.push("Suppliers through e-commerce operators are not eligible.")
+      eligible = false
+    }
+    if (formData.isIceCreamManufacturer) {
+      reasons.push("Manufacturers of ice cream, pan masala, or tobacco are not eligible.")
+      eligible = false
+    }
+    if (formData.isTobaccoManufacturer) {
+      reasons.push("Tobacco product manufacturers are not eligible.")
+      eligible = false
+    }
+    if (formData.isPanMasalaManufacturer) {
+      reasons.push("Pan masala manufacturers are not eligible.")
+      eligible = false
+    }
+    if (formData.isNonResident) {
+      reasons.push("Non-resident taxable persons cannot opt for Composition Scheme.")
+      eligible = false
+    }
+    if (formData.isCasualTaxable) {
+      reasons.push("Casual taxable persons are not eligible.")
+      eligible = false
+    }
+    if (formData.isInputServiceDistributor) {
+      reasons.push("Input Service Distributors cannot opt for Composition Scheme.")
+      eligible = false
+    }
+
+    // Tax rate determination
+    let taxRate = ""
+    if (eligible) {
+      if (formData.businessType === "manufacturer") {
+        taxRate = "1% CGST + 1% SGST (Total 2%)"
+      } else if (formData.businessType === "restaurant") {
+        taxRate = "2.5% CGST + 2.5% SGST (Total 5%)"
+      } else if (formData.businessType === "trader") {
+        taxRate = "0.5% CGST + 0.5% SGST (Total 1%)"
+      } else if (formData.businessType === "service") {
+        taxRate = "3% CGST + 3% SGST (Total 6%) — under Notification No. 2/2019"
+      }
+      suggestions.push("You can file GST returns quarterly using Form CMP-08.")
+      suggestions.push("Annual return must be filed using GSTR-4 by 30th April.")
+      suggestions.push("You cannot collect tax from customers under Composition Scheme.")
+      suggestions.push("Input Tax Credit (ITC) cannot be claimed under this scheme.")
+      suggestions.push("All invoices must carry 'Composition taxable person, not eligible to collect tax on supplies' as a heading.")
+    } else {
+      suggestions.push("Consider filing regular GST returns using GSTR-1 and GSTR-3B.")
+      suggestions.push("Under regular scheme, you can claim Input Tax Credit (ITC).")
+      suggestions.push("You can charge GST to customers and issue tax invoices.")
+    }
+
+    setResult({ eligible, reasons, taxRate, suggestions })
+  }
+
+  const specialStates = ["Arunachal Pradesh", "Assam", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Sikkim", "Tripura", "Himachal Pradesh", "Uttarakhand"]
+  const allStates = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+    "Uttarakhand", "West Bengal", "Delhi", "Jammu & Kashmir", "Ladakh", "Puducherry",
+    "Chandigarh", "Andaman & Nicobar Islands", "Dadra & Nagar Haveli and Daman & Diu", "Lakshadweep"
+  ]
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            GST Composition Scheme Eligibility Checker
+          </CardTitle>
+          <CardDescription>
+            Check if your business qualifies for the GST Composition Scheme under Section 10 of the CGST Act, 2017
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Business Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="turnover" className="flex items-center gap-1">
+                <IndianRupee className="h-4 w-4" />
+                Annual Aggregate Turnover (in Lakhs ₹)
+              </Label>
+              <Input
+                id="turnover"
+                type="number"
+                placeholder="e.g., 50"
+                value={formData.annualTurnover}
+                onChange={(e) => setFormData({ ...formData, annualTurnover: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Limit: ₹1.5 Cr (General) / ₹75 L (Special Category States)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Business Type</Label>
+              <Select
+                value={formData.businessType}
+                onValueChange={(value) => setFormData({ ...formData, businessType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select business type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manufacturer">Manufacturer</SelectItem>
+                  <SelectItem value="trader">Trader / Dealer</SelectItem>
+                  <SelectItem value="restaurant">Restaurant (not serving alcohol)</SelectItem>
+                  <SelectItem value="service">Service Provider</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>State / Union Territory</Label>
+              <Select
+                value={formData.state}
+                onValueChange={(value) => setFormData({ ...formData, state: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allStates.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state} {specialStates.includes(state) ? "⭐" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">⭐ = Special Category State (lower turnover limit)</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Restriction Questions */}
+          <div>
+            <h3 className="font-semibold mb-4 text-lg">Eligibility Conditions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: "isInterStateSupply", label: "Do you make inter-state outward supplies?" },
+                { key: "isEcomOperator", label: "Do you supply goods through e-commerce operators?" },
+                { key: "isIceCreamManufacturer", label: "Do you manufacture ice cream?" },
+                { key: "isTobaccoManufacturer", label: "Do you manufacture tobacco products?" },
+                { key: "isPanMasalaManufacturer", label: "Do you manufacture pan masala?" },
+                { key: "isNonResident", label: "Are you a non-resident taxable person?" },
+                { key: "isCasualTaxable", label: "Are you a casual taxable person?" },
+                { key: "isInputServiceDistributor", label: "Are you an Input Service Distributor?" },
+              ].map((item) => (
+                <div key={item.key} className="flex items-start space-x-3 p-3 rounded-lg border bg-gray-50 dark:bg-gray-900">
+                  <Checkbox
+                    id={item.key}
+                    checked={formData[item.key as keyof typeof formData] as boolean}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, [item.key]: checked === true })
+                    }
+                  />
+                  <Label htmlFor={item.key} className="text-sm cursor-pointer leading-relaxed">
+                    {item.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button onClick={checkEligibility} className="w-full" size="lg">
+            <HelpCircle className="mr-2 h-5 w-5" />
+            Check Eligibility
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Result */}
+      {result && (
+        <Card className={`border-2 ${result.eligible ? "border-green-500" : "border-red-500"}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {result.eligible ? (
+                <>
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  <span className="text-green-700">Eligible for Composition Scheme</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-6 w-6 text-red-600" />
+                  <span className="text-red-700">Not Eligible for Composition Scheme</span>
+                </>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {result.eligible && result.taxRate && (
+              <Alert className="border-green-200 bg-green-50">
+                <IndianRupee className="h-4 w-4" />
+                <AlertTitle>Applicable Tax Rate</AlertTitle>
+                <AlertDescription className="font-semibold text-lg">{result.taxRate}</AlertDescription>
+              </Alert>
+            )}
+
+            {!result.eligible && result.reasons.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2 text-red-700">Reasons for Ineligibility:</h4>
+                <ul className="space-y-2">
+                  {result.reasons.map((reason, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <Separator />
+
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-600" />
+                Recommendations:
+              </h4>
+              <ul className="space-y-2">
+                {result.suggestions.map((suggestion, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// --- GST Filing Form ---
+function GSTFilingForm() {
+  const [step, setStep] = useState(1)
+  const [submitted, setSubmitted] = useState(false)
+  const [filingData, setFilingData] = useState({
+    // Step 1: Business Info
+    businessName: "",
+    gstin: "",
+    pan: "",
+    businessType: "",
+    registrationType: "",
+    dateOfRegistration: "",
+    // Step 2: Contact
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    email: "",
+    phone: "",
+    // Step 3: Tax Details
+    taxPeriod: "",
+    taxableAmount: "",
+    cgst: "",
+    sgst: "",
+    igst: "",
+    cess: "",
+    itcClaimed: "",
+    // Step 4: Supply Details
+    totalOutwardSupply: "",
+    totalInwardSupply: "",
+    exemptedSupply: "",
+    nilRatedSupply: "",
+    reverseChargeInward: "",
+    // Additional
+    remarks: "",
+    declaration: false,
+  })
+
+  const updateField = (field: string, value: string | boolean) => {
+    setFilingData({ ...filingData, [field]: value })
+  }
+
+  const calculateTotal = () => {
+    const cgst = parseFloat(filingData.cgst) || 0
+    const sgst = parseFloat(filingData.sgst) || 0
+    const igst = parseFloat(filingData.igst) || 0
+    const cess = parseFloat(filingData.cess) || 0
+    const itc = parseFloat(filingData.itcClaimed) || 0
+    return {
+      totalTax: cgst + sgst + igst + cess,
+      netPayable: Math.max(0, cgst + sgst + igst + cess - itc),
+      itc,
+    }
+  }
+
+  const handleSubmit = () => {
+    setSubmitted(true)
+  }
+
+  if (submitted) {
+    const totals = calculateTotal()
+    return (
+      <Card className="border-2 border-green-500">
+        <CardHeader className="text-center">
+          <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
+          <CardTitle className="text-2xl text-green-700">GST Return Filed Successfully!</CardTitle>
+          <CardDescription>Your GST return has been submitted for processing</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Business Name</p>
+              <p className="font-semibold">{filingData.businessName || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">GSTIN</p>
+              <p className="font-semibold">{filingData.gstin || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Tax Period</p>
+              <p className="font-semibold">{filingData.taxPeriod || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Filing Reference</p>
+              <p className="font-semibold">GST{Date.now().toString().slice(-10)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Tax Liability</p>
+              <p className="font-semibold text-lg">₹{totals.totalTax.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Net Tax Payable (after ITC)</p>
+              <p className="font-semibold text-lg text-green-700">₹{totals.netPayable.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Important</AlertTitle>
+            <AlertDescription>
+              This is a demo filing. For actual GST filing, please visit the official GST portal at{" "}
+              <a href="https://www.gst.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                www.gst.gov.in
+              </a>
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex gap-4">
+            <Button variant="outline" className="flex-1" onClick={() => { setSubmitted(false); setStep(1) }}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              File Another Return
+            </Button>
+            <Button className="flex-1">
+              <Download className="mr-2 h-4 w-4" />
+              Download Receipt
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-blue-600" />
+          GST Return Filing
+        </CardTitle>
+        <CardDescription>Complete all steps to file your GST return</CardDescription>
+
+        {/* Progress Steps */}
+        <div className="flex items-center justify-between mt-4">
+          {[
+            { num: 1, label: "Business Info" },
+            { num: 2, label: "Contact Details" },
+            { num: 3, label: "Tax Details" },
+            { num: 4, label: "Supply Details" },
+            { num: 5, label: "Review & Submit" },
+          ].map((s, index) => (
+            <div key={s.num} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                    step >= s.num
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-500 dark:bg-gray-700"
+                  }`}
+                >
+                  {step > s.num ? <CheckCircle2 className="h-5 w-5" /> : s.num}
+                </div>
+                <span className="text-xs mt-1 text-center hidden sm:block">{s.label}</span>
+              </div>
+              {index < 4 && (
+                <div className={`w-8 sm:w-16 h-0.5 mx-1 ${step > s.num ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"}`} />
+              )}
+            </div>
+          ))}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Step 1: Business Info */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Business Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Legal Name of Business *</Label>
+                <Input
+                  id="businessName"
+                  placeholder="Enter business name"
+                  value={filingData.businessName}
+                  onChange={(e) => updateField("businessName", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gstin">GSTIN *</Label>
+                <Input
+                  id="gstin"
+                  placeholder="e.g., 29ABCDE1234F1Z5"
+                  maxLength={15}
+                  value={filingData.gstin}
+                  onChange={(e) => updateField("gstin", e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pan">PAN *</Label>
+                <Input
+                  id="pan"
+                  placeholder="e.g., ABCDE1234F"
+                  maxLength={10}
+                  value={filingData.pan}
+                  onChange={(e) => updateField("pan", e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Business Type *</Label>
+                <Select value={filingData.businessType} onValueChange={(v) => updateField("businessType", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="proprietorship">Proprietorship</SelectItem>
+                    <SelectItem value="partnership">Partnership</SelectItem>
+                    <SelectItem value="llp">LLP</SelectItem>
+                    <SelectItem value="pvtLtd">Private Limited</SelectItem>
+                    <SelectItem value="ltd">Limited Company</SelectItem>
+                    <SelectItem value="huf">HUF</SelectItem>
+                    <SelectItem value="trust">Trust</SelectItem>
+                    <SelectItem value="others">Others</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Registration Type *</Label>
+                <Select value={filingData.registrationType} onValueChange={(v) => updateField("registrationType", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="composition">Composition</SelectItem>
+                    <SelectItem value="casual">Casual Taxable Person</SelectItem>
+                    <SelectItem value="uin">UIN Holder</SelectItem>
+                    <SelectItem value="isd">Input Service Distributor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateOfReg">Date of Registration</Label>
+                <Input
+                  id="dateOfReg"
+                  type="date"
+                  value={filingData.dateOfRegistration}
+                  onChange={(e) => updateField("dateOfRegistration", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Contact Details */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Contact & Address Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="address">Registered Address *</Label>
+                <Textarea
+                  id="address"
+                  placeholder="Enter complete address"
+                  value={filingData.address}
+                  onChange={(e) => updateField("address", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  placeholder="Enter city"
+                  value={filingData.city}
+                  onChange={(e) => updateField("city", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>State *</Label>
+                <Select value={filingData.state} onValueChange={(v) => updateField("state", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                  <SelectContent>
+                    {["Andhra Pradesh", "Delhi", "Gujarat", "Karnataka", "Maharashtra", "Tamil Nadu", "Uttar Pradesh", "West Bengal", "Rajasthan", "Kerala", "Bihar", "Punjab", "Haryana", "Madhya Pradesh", "Telangana", "Odisha", "Jharkhand", "Chhattisgarh", "Assam", "Goa"].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pincode">PIN Code *</Label>
+                <Input
+                  id="pincode"
+                  placeholder="e.g., 110001"
+                  maxLength={6}
+                  value={filingData.pincode}
+                  onChange={(e) => updateField("pincode", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={filingData.email}
+                  onChange={(e) => updateField("email", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Mobile Number *</Label>
+                <Input
+                  id="phone"
+                  placeholder="e.g., 9876543210"
+                  maxLength={10}
+                  value={filingData.phone}
+                  onChange={(e) => updateField("phone", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Tax Details */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <IndianRupee className="h-5 w-5" />
+              Tax Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label>Tax Period *</Label>
+                <Select value={filingData.taxPeriod} onValueChange={(v) => updateField("taxPeriod", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select tax period" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apr-2024">April 2024</SelectItem>
+                    <SelectItem value="may-2024">May 2024</SelectItem>
+                    <SelectItem value="jun-2024">June 2024</SelectItem>
+                    <SelectItem value="jul-2024">July 2024</SelectItem>
+                    <SelectItem value="aug-2024">August 2024</SelectItem>
+                    <SelectItem value="sep-2024">September 2024</SelectItem>
+                    <SelectItem value="oct-2024">October 2024</SelectItem>
+                    <SelectItem value="nov-2024">November 2024</SelectItem>
+                    <SelectItem value="dec-2024">December 2024</SelectItem>
+                    <SelectItem value="jan-2025">January 2025</SelectItem>
+                    <SelectItem value="feb-2025">February 2025</SelectItem>
+                    <SelectItem value="mar-2025">March 2025</SelectItem>
+                    <SelectItem value="q1-2024">Q1 (Apr-Jun 2024)</SelectItem>
+                    <SelectItem value="q2-2024">Q2 (Jul-Sep 2024)</SelectItem>
+                    <SelectItem value="q3-2024">Q3 (Oct-Dec 2024)</SelectItem>
+                    <SelectItem value="q4-2025">Q4 (Jan-Mar 2025)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="taxableAmount">Total Taxable Amount (₹)</Label>
+                <Input
+                  id="taxableAmount"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.taxableAmount}
+                  onChange={(e) => updateField("taxableAmount", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cgst">CGST (₹)</Label>
+                <Input
+                  id="cgst"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.cgst}
+                  onChange={(e) => updateField("cgst", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sgst">SGST/UTGST (₹)</Label>
+                <Input
+                  id="sgst"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.sgst}
+                  onChange={(e) => updateField("sgst", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igst">IGST (₹)</Label>
+                <Input
+                  id="igst"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.igst}
+                  onChange={(e) => updateField("igst", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cess">Cess (₹)</Label>
+                <Input
+                  id="cess"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.cess}
+                  onChange={(e) => updateField("cess", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="itc">Input Tax Credit Claimed (₹)</Label>
+                <Input
+                  id="itc"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.itcClaimed}
+                  onChange={(e) => updateField("itcClaimed", e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Tax Summary */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+              <h4 className="font-semibold mb-2">Tax Summary</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Total Tax</p>
+                  <p className="font-bold text-lg">₹{calculateTotal().totalTax.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">ITC Claimed</p>
+                  <p className="font-bold text-lg text-blue-600">₹{calculateTotal().itc.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Net Payable</p>
+                  <p className="font-bold text-lg text-green-600">₹{calculateTotal().netPayable.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Supply Details */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Supply Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="outward">Total Outward Supplies (₹)</Label>
+                <Input
+                  id="outward"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.totalOutwardSupply}
+                  onChange={(e) => updateField("totalOutwardSupply", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="inward">Total Inward Supplies (₹)</Label>
+                <Input
+                  id="inward"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.totalInwardSupply}
+                  onChange={(e) => updateField("totalInwardSupply", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="exempt">Exempted Supplies (₹)</Label>
+                <Input
+                  id="exempt"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.exemptedSupply}
+                  onChange={(e) => updateField("exemptedSupply", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nilRated">Nil-Rated Supplies (₹)</Label>
+                <Input
+                  id="nilRated"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.nilRatedSupply}
+                  onChange={(e) => updateField("nilRatedSupply", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="reverseCharge">Inward Supplies under Reverse Charge (₹)</Label>
+                <Input
+                  id="reverseCharge"
+                  type="number"
+                  placeholder="0.00"
+                  value={filingData.reverseChargeInward}
+                  onChange={(e) => updateField("reverseChargeInward", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="remarks">Additional Remarks</Label>
+                <Textarea
+                  id="remarks"
+                  placeholder="Any additional information..."
+                  value={filingData.remarks}
+                  onChange={(e) => updateField("remarks", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Review */}
+        {step === 5 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Review & Submit</h3>
+
+            <div className="space-y-4">
+              {/* Business Info Summary */}
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Business Information
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Name:</span> <br /><strong>{filingData.businessName || "—"}</strong></div>
+                  <div><span className="text-muted-foreground">GSTIN:</span> <br /><strong>{filingData.gstin || "—"}</strong></div>
+                  <div><span className="text-muted-foreground">PAN:</span> <br /><strong>{filingData.pan || "—"}</strong></div>
+                  <div><span className="text-muted-foreground">Type:</span> <br /><strong>{filingData.businessType || "—"}</strong></div>
+                  <div><span className="text-muted-foreground">Registration:</span> <br /><strong>{filingData.registrationType || "—"}</strong></div>
+                  <div><span className="text-muted-foreground">Tax Period:</span> <br /><strong>{filingData.taxPeriod || "—"}</strong></div>
+                </div>
+              </div>
+
+              {/* Tax Summary */}
+              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <IndianRupee className="h-4 w-4" /> Tax Summary
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">CGST:</span> <br /><strong>₹{parseFloat(filingData.cgst || "0").toLocaleString()}</strong></div>
+                  <div><span className="text-muted-foreground">SGST:</span> <br /><strong>₹{parseFloat(filingData.sgst || "0").toLocaleString()}</strong></div>
+                  <div><span className="text-muted-foreground">IGST:</span> <br /><strong>₹{parseFloat(filingData.igst || "0").toLocaleString()}</strong></div>
+                  <div><span className="text-muted-foreground">Cess:</span> <br /><strong>₹{parseFloat(filingData.cess || "0").toLocaleString()}</strong></div>
+                </div>
+                <Separator className="my-3" />
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Total Tax</span>
+                    <p className="font-bold text-xl">₹{calculateTotal().totalTax.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">ITC Claimed</span>
+                    <p className="font-bold text-xl text-blue-600">₹{calculateTotal().itc.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Net Payable</span>
+                    <p className="font-bold text-xl text-green-700">₹{calculateTotal().netPayable.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Declaration */}
+              <div className="flex items-start space-x-3 p-4 border-2 border-orange-200 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                <Checkbox
+                  id="declaration"
+                  checked={filingData.declaration}
+                  onCheckedChange={(checked) => updateField("declaration", checked === true)}
+                />
+                <Label htmlFor="declaration" className="text-sm cursor-pointer leading-relaxed">
+                  I hereby declare that the information furnished above is true, correct and complete to the best of my knowledge and belief, and nothing has been concealed therefrom. I am aware that this is a demo application and actual GST filing should be done through the official GST portal (www.gst.gov.in).
+                </Label>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => setStep(Math.max(1, step - 1))}
+          disabled={step === 1}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Previous
+        </Button>
+
+        {step < 5 ? (
+          <Button onClick={() => setStep(Math.min(5, step + 1))}>
+            Next
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSubmit}
+            disabled={!filingData.declaration}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Submit GST Return
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  )
+}
+
+// --- Info Section ---
+function GSTInfoSection() {
+  return (
+    <div className="space-y-6">
+      {/* Composition Scheme Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>What is GST Composition Scheme?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            The Composition Scheme under GST is a simple and easy scheme for small taxpayers. It allows eligible taxpayers to pay GST at a fixed rate of turnover and file simplified returns. This scheme is available under Section 10 of the CGST Act, 2017.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="border-green-200 bg-green-50 dark:bg-green-950">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-green-700">✅ Benefits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-1">
+                  <li>• Lower tax rates (1% to 6%)</li>
+                  <li>• Quarterly return filing (not monthly)</li>
+                  <li>• Less compliance burden</li>
+                  <li>• Simple record keeping</li>
+                  <li>• Annual return only GSTR-4</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-200 bg-red-50 dark:bg-red-950">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-red-700">❌ Limitations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm space-y-1">
+                  <li>• Cannot collect tax from customers</li>
+                  <li>• No Input Tax Credit (ITC)</li>
+                  <li>• Cannot make inter-state supplies</li>
+                  <li>• Cannot supply through e-commerce</li>
+                  <li>• Must mention "Composition" on bills</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tax Rates Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Composition Scheme Tax Rates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border">
+              <thead>
+                <tr className="bg-blue-50 dark:bg-blue-950">
+                  <th className="text-left p-3 border">Category</th>
+                  <th className="text-center p-3 border">CGST</th>
+                  <th className="text-center p-3 border">SGST/UTGST</th>
+                  <th className="text-center p-3 border">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-3 border">Manufacturers</td>
+                  <td className="text-center p-3 border">1%</td>
+                  <td className="text-center p-3 border">1%</td>
+                  <td className="text-center p-3 border font-bold">2%</td>
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-900">
+                  <td className="p-3 border">Traders / Dealers</td>
+                  <td className="text-center p-3 border">0.5%</td>
+                  <td className="text-center p-3 border">0.5%</td>
+                  <td className="text-center p-3 border font-bold">1%</td>
+                </tr>
+                <tr>
+                  <td className="p-3 border">Restaurants (no alcohol)</td>
+                  <td className="text-center p-3 border">2.5%</td>
+                  <td className="text-center p-3 border">2.5%</td>
+                  <td className="text-center p-3 border font-bold">5%</td>
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-900">
+                  <td className="p-3 border">Service Providers</td>
+                  <td className="text-center p-3 border">3%</td>
+                  <td className="text-center p-3 border">3%</td>
+                  <td className="text-center p-3 border font-bold">6%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Important Dates */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Important Due Dates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border rounded-lg">
+              <Badge variant="outline" className="mb-2">Composition Scheme</Badge>
+              <h4 className="font-semibold">CMP-08 (Quarterly)</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Due by 18th of the month following the quarter
+              </p>
+              <div className="mt-2 text-xs space-y-1">
+                <p>Q1 (Apr-Jun): 18th July</p>
+                <p>Q2 (Jul-Sep): 18th October</p>
+                <p>Q3 (Oct-Dec): 18th January</p>
+                <p>Q4 (Jan-Mar): 18th April</p>
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <Badge variant="outline" className="mb-2">Annual Return</Badge>
+              <h4 className="font-semibold">GSTR-4 (Annual)</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Due by 30th April of the following financial year
+              </p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <Badge variant="outline" className="mb-2">Regular Scheme</Badge>
+              <h4 className="font-semibold">GSTR-3B (Monthly)</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Due by 20th of the following month
+              </p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <Badge variant="outline" className="mb-2">Regular Scheme</Badge>
+              <h4 className="font-semibold">GSTR-1 (Monthly/Quarterly)</h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monthly: 11th of following month<br />
+                Quarterly: 13th of month following quarter
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// --- Main Component ---
+export default function GSTCounselingPortal() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-950 dark:to-gray-900">
+      {/* Header */}
+      <header className="border-b bg-white dark:bg-gray-950 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">GST</span>
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-100">GST Counseling Portal</h1>
+                <p className="text-xs md:text-sm text-muted-foreground">File GST Returns & Check Composition Scheme Eligibility</p>
+              </div>
+            </div>
+            <Badge variant="secondary" className="hidden sm:flex">
+              <span className="text-green-600 mr-1">●</span> Demo Portal
+            </Badge>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Disclaimer</AlertTitle>
+          <AlertDescription>
+            This is a demo/educational portal for GST counseling. For actual GST filing, please visit{" "}
+            <a href="https://www.gst.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-semibold">
+              www.gst.gov.in
+            </a>
+          </AlertDescription>
+        </Alert>
+
+        <Tabs defaultValue="eligibility" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="eligibility" className="flex flex-col sm:flex-row items-center gap-1 py-3">
+              <Shield className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Composition Check</span>
+            </TabsTrigger>
+            <TabsTrigger value="filing" className="flex flex-col sm:flex-row items-center gap-1 py-3">
+              <FileText className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">File GST Return</span>
+            </TabsTrigger>
+            <TabsTrigger value="info" className="flex flex-col sm:flex-row items-center gap-1 py-3">
+              <HelpCircle className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">GST Guide</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="eligibility">
+            <CompositionEligibility />
+          </TabsContent>
+
+          <TabsContent value="filing">
+            <GSTFilingForm />
+          </TabsContent>
+
+          <TabsContent value="info">
+            <GSTInfoSection />
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-gray-50 dark:bg-gray-950 mt-12">
+        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+          <p>⚠️ This is a demo application for educational purposes only.</p>
+          <p className="mt-1">For official GST filing, visit <a href="https://www.gst.gov.in" className="text-blue-600 underline">www.gst.gov.in</a></p>
+          <p className="mt-2">© 2025 GST Counseling Portal | Built with ❤️</p>
+        </div>
+      </footer>
+    </div>
+  )
+}
